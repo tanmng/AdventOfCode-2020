@@ -12,7 +12,6 @@ const INPUT_FILE = 'input.txt';
 $seat_numbers = [];
 // Open the input file and read the numbers
 $handle = @fopen(INPUT_FILE, "r");
-// A buffer of all the  current lines for the curernt passport
 if (!$handle) {
     // Failed to open the file
     throw new Exception ('Failed opening input file '.INPUT_FILE);
@@ -21,11 +20,7 @@ if (!$handle) {
         // Clean up the string
         $input = trim($buffer);
 
-        $bin_string = $input;
-        $bin_string = str_replace('F', '0', $bin_string);
-        $bin_string = str_replace('B', '1', $bin_string);
-        $bin_string = str_replace('L', '0', $bin_string);
-        $bin_string = str_replace('R', '1', $bin_string);
+        $bin_string = str_replace(['F', 'B', 'L', 'R'], [0, 1, 0, 1], $input);
 
         $current_seat_id = bindec($bin_string);
 
@@ -39,7 +34,7 @@ if (!$handle) {
 }
 
 // Go through the list of numbers and find the missing one
-$missing = array_diff(range(0, 127 * 8), $seat_numbers);
+$missing = array_diff(range(min($seat_numbers), max($seat_numbers)), $seat_numbers);
 
 foreach ($missing as $potential) {
     if (in_array($potential + 1, $seat_numbers) && in_array($potential - 1, $seat_numbers)) {
