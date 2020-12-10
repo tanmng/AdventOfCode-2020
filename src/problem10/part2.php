@@ -8,7 +8,7 @@
 
 
 // Script constants
-const INPUT_FILE = 'sample.txt';
+const INPUT_FILE = 'input.txt';
 
 // Array of adapters
 $adapters = [];
