@@ -45,9 +45,10 @@ if (!$handle) {
 $waiting_area_timelapse[] = $waiting_area;
 
 /*
- * Function to return the number of occupied seat adjacent to it
+ * Function to return the number of occupied seat that we can see from the
+ * specified one
  */
-function adjacent_occupied(
+function saw_occupied(
     int $x,
     int $y
 ): int
@@ -59,205 +60,40 @@ function adjacent_occupied(
     // Copy the current state of waiting area
     $current_area = $waiting_area_timelapse[count($waiting_area_timelapse) - 1];
     $result = 0;
-    // Representation the view from the chair
-    // 0 - north
-    // So on - Clockwise
-    $view_directions = array_fill(0, 8, 0);
-    // Look north
-    foreach (range(max($y - 1, 0), 0) as $dy) {
-        if ($dy === $y) {
-            // Skip
-            continue;
-        }
-        $inview = $current_area[$dy][$x];
-        if ($inview == FREE) {
-            // See a free seat
-            break;
-        }
-        if ($inview == OCCUPIED) {
-            // Found an occupied seat looking up
-            $view_directions[0] = 1;
-            break;
+
+    foreach ([-1, 0, 1] as $dx) {
+        foreach ([-1, 0, 1] as $dy) {
+            if ($dx == 0 && $dy == 0) {
+                // It's exactly this seat - skip
+                continue;
+            }
+            $new_x = $x + $dx;
+            $new_y = $y + $dy;
+            while (true) {
+                if ($new_y < 0 || $new_y >= $waiting_height || $new_x < 0 || $new_x >= $waiting_width) {
+                    // No longer in area
+                    break;
+                }
+                // Think of how to move a queen on chess board
+                $cur_state = $current_area[$new_y][$new_x];
+                // print($new_y.', '.$new_x.': '.$cur_state."\n");
+                if ($cur_state == FLOOR) {
+                    // We're still looking at the floor -> keep going to the
+                    // direction specified
+                    $new_y += $dy;
+                    $new_x += $dx;
+                } else if ($cur_state == FREE) {
+                    // We saw a free chair
+                    break;
+                } else if ($cur_state == OCCUPIED) {
+                    // We saw a free chair
+                    $result += 1;
+                    break;
+                }
+            }
         }
     }
-
-    // Look south
-    foreach (range(min($y + 1, $waiting_height - 1), $waiting_height - 1) as $dy) {
-        if ($dy === $y) {
-            // Skip
-            continue;
-        }
-        $inview = $current_area[$dy][$x];
-        if ($inview == FREE) {
-            // See a free seat
-            break;
-        }
-        if ($inview == OCCUPIED) {
-            // Found an occupied seat looking up
-            $view_directions[4] = 1;
-            break;
-        }
-    }
-
-    // Look west
-    foreach (range(max($x - 1, 0), 0) as $dx) {
-        if ($dx === $x) {
-            // Skip
-            continue;
-        }
-        $inview = $current_area[$y][$dx];
-        if ($inview == FREE) {
-            // See a free seat
-            break;
-        }
-        if ($inview == OCCUPIED) {
-            // Found an occupied seat looking up
-            $view_directions[6] = 1;
-            break;
-        }
-    }
-
-    // Look east
-    foreach (range(min($x + 1, $waiting_width - 1), $waiting_width - 1) as $dx) {
-        if ($dx === $x) {
-            // Skip
-            continue;
-        }
-        $inview = $current_area[$y][$dx];
-        if ($inview == FREE) {
-            // See a free seat
-            break;
-        }
-        if ($inview == OCCUPIED) {
-            // Found an occupied seat looking up
-            $view_directions[2] = 1;
-            break;
-        }
-    }
-
-    // Look north east
-    foreach (range(0, min($y, $waiting_width - $x - 1)) as $delta) {
-        if ($delta == 0) {
-            continue;
-        }
-        $dx = $x + $delta;
-        $dy = $y - $delta;
-        $inview = $current_area[$dy][$dx];
-        if ($inview == FREE) {
-            // See a free seat
-            break;
-        }
-        if ($inview == OCCUPIED) {
-            // Found an occupied seat looking up
-            $view_directions[1] = 1;
-            break;
-        }
-    }
-    // Look north west
-    foreach (range(0, min($y, $x)) as $delta) {
-        if ($delta == 0) {
-            continue;
-        }
-        $dx = $x - $delta;
-        $dy = $y - $delta;
-        $inview = $current_area[$dy][$dx];
-        if ($inview == FREE) {
-            // See a free seat
-            break;
-        }
-        if ($inview == OCCUPIED) {
-            // Found an occupied seat looking up
-            $view_directions[7] = 1;
-            break;
-        }
-    }
-
-    // Look south east
-    foreach (range(0, min($waiting_height - $y - 1, $waiting_width - $x - 1)) as $delta) {
-        if ($delta == 0) {
-            continue;
-        }
-        $dx = $x + $delta;
-        $dy = $y + $delta;
-        $inview = $current_area[$dy][$dx];
-        if ($inview == FREE) {
-            // See a free seat
-            break;
-        }
-        if ($inview == OCCUPIED) {
-            // Found an occupied seat looking up
-            $view_directions[3] = 1;
-            break;
-        }
-    }
-
-    // Look south west
-    foreach (range(0, min($waiting_height - $y - 1, $x)) as $delta) {
-        if ($delta == 0) {
-            continue;
-        }
-        $dx = $x - $delta;
-        $dy = $y + $delta;
-        $inview = $current_area[$dy][$dx];
-        if ($inview == FREE) {
-            // See a free seat
-            break;
-        }
-        if ($inview == OCCUPIED) {
-            // Found an occupied seat looking up
-            $view_directions[5] = 1;
-            break;
-        }
-    }
-    // print_r($view_directions);
-    return array_sum($view_directions);
-}
-
-// Some basic test
-if (false) {
-    $waiting_area_timelapse = [
-        [
-            '.......#.',
-            '...#.....',
-            '.#.......',
-            '.........',
-            '..#L....#',
-            '....#....',
-            '.........',
-            '#........',
-            '...#.....',
-        ],
-    ];
-    $waiting_height = 9;
-    $waiting_width = 9;
-    print(adjacent_occupied(3, 4)."\n");
-
-    $waiting_area_timelapse = [
-        [
-            '.##.##.',
-            '#.#.#.#',
-            '##...##',
-            '...L...',
-            '##...##',
-            '#.#.#.#',
-            '.##.##.',
-        ],
-    ];
-    $waiting_height = 7;
-    $waiting_width = 7;
-    print(adjacent_occupied(3, 3)."\n");
-
-    $waiting_area_timelapse = [
-        [
-            '.............',
-            '.L.L.#.#.#.#.',
-            '.............',
-        ],
-    ];
-    $waiting_height = 3;
-    $waiting_width = 13;
-    print(adjacent_occupied(1, 1)."\n");
-    return;
+    return $result;
 }
 
 // Simulation
@@ -274,7 +110,7 @@ while (true) {
                 // NO change to this thing
                 $line .= FLOOR;
             } else {
-                $adjacent = adjacent_occupied($x, $y);
+                $adjacent = saw_occupied($x, $y);
                 if ($adjacent === 0 && $cur_state === FREE) {
                     // this should become occupied
                     $line .= OCCUPIED;
