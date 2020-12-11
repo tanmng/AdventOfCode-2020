@@ -59,13 +59,23 @@ function adjacent_occupied(
     // Copy the current state of waiting area
     $current_area = $waiting_area_timelapse[count($waiting_area_timelapse) - 1];
     $result = 0;
-    foreach (range(max($x - 1, 0), min($x + 1, $waiting_width - 1)) as $dx) {
-        foreach (range(max($y - 1, 0), min($y + 1, $waiting_height - 1)) as $dy) {
-            if ($dx == $x && $dy == $y) {
+    foreach ([-1, 0, 1] as $dx) {
+        $new_x = $x + $dx;
+        if ($new_x < 0 || $new_x >= $waiting_width) {
+            // No longer in the waiting area
+            continue;
+        }
+        foreach ([-1, 0, 1] as $dy) {
+            if ($dx == 0 && $dy == 0) {
                 // It's exactly this seat - skip
                 continue;
             }
-            if ($current_area[$dy][$dx] == OCCUPIED) {
+            $new_y = $y + $dy;
+            if ($new_y < 0 || $new_y >= $waiting_height) {
+                // No longer in area
+                continue;
+            }
+            if ($current_area[$new_y][$new_x] == OCCUPIED) {
                 $result += 1;
             }
         }
