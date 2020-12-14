@@ -9,6 +9,7 @@
 
 // Script constants
 const INPUT_FILE = 'input.txt';
+const MASK_KEEP_BIT = 'X';  // Signify that we should keep the value when applying mask
 
 $lines = [];
 // Open the input file and read the numbers
@@ -41,7 +42,7 @@ function apply_mask(
     $value_bin = str_pad(decbin($value), 36, '000000000000000000000000000000000000', STR_PAD_LEFT);
     $result_bin = '';
     foreach (range(0, 35) as $i) {
-        if ($mask[$i] === 'X') {
+        if ($mask[$i] === MASK_KEEP_BIT) {
             $result_bin .= $value_bin[$i];
         } else {
             // Overwrite

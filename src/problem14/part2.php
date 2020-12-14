@@ -11,6 +11,7 @@ ini_set('memory_limit', '2048M');
 
 // Script constants
 const INPUT_FILE = 'input.txt';
+const MASK_FLOAT_BIT = 'X';  // Signify that we should treat the bit as float
 
 $lines = [];
 // Open the input file and read the numbers
@@ -55,7 +56,7 @@ function apply_mask(
     }
 
     // We now need to generate all the address
-    $bin_addresses = generate_address($result_bin_bits, []);
+    $bin_addresses = generate_address($result_bin_bits);
     $final = [];
     foreach ($bin_addresses as $bin) {
         $final[] = bindec($bin);
@@ -66,45 +67,34 @@ function apply_mask(
 // We have to do this recursively
 function generate_address(
     array $bits_left,
-    array $accumulator
+    array $accumulator = ['']   // Initially this should contain 1 element - an empty string so that we can avoid having to check for the number of elements
 ): array
 {
     if (count($bits_left) === 0) {
         // Nothing left to construct
         return $accumulator;
     } else {
-        $first_bit_left = $bits_left[0];
+        $first_bit_left = array_shift($bits_left);
         switch ($first_bit_left) {
         case '0':
         case '1':
             // Fixed bit
-            if (count($accumulator) === 0) {
-                // Nothing in accumulator yet
-                $accumulator[] = $first_bit_left;
-            } else {
-                foreach ($accumulator as $i => $temp) {
-                    $accumulator[$i] .= $first_bit_left;
-                }
+            foreach (range(0, count($accumulator) - 1) as $i) {
+                $accumulator[$i] .= $first_bit_left;
             }
             break;
-        case 'X':
+        case MASK_FLOAT_BIT:
             //Floatting bit
-            if (count($accumulator) === 0) {
-                // Nothing yet
-                $accumulator = ['0', '1'];
-            } else {
-                $copy = $accumulator;
-                $accumulator = [];
-                foreach ($copy as $value) {
-                    $accumulator[] = $value.'0';
-                    $accumulator[] = $value.'1';
-                }
+            $copy = $accumulator;
+            $accumulator = [];
+            foreach ($copy as $value) {
+                $accumulator[] = $value.'0';
+                $accumulator[] = $value.'1';
             }
             break;
         }
+        return generate_address($bits_left, $accumulator);
     }
-    array_shift($bits_left);
-    return generate_address($bits_left, $accumulator);
 }
 
 
@@ -115,7 +105,6 @@ foreach ($lines as $line) {
     if (preg_match('/^mask = ([01X]+)$/', $line, $parts)) {
         // This is the mask instruction
         $current_mask = $parts[1];
-        // print('Current mask: '.$current_mask."\n");
         continue;
     }
 
@@ -128,9 +117,7 @@ foreach ($lines as $line) {
             // print('Set '.$temp_address.' to '.$value.' (with mask '.$current_mask.") \n");
             $memory[$temp_address] = $value;
         }
-        // print_r($memory);
         continue;
-        // break;
     }
 }
 
