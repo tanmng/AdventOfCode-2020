@@ -12,6 +12,7 @@ ini_set('memory_limit', '2048M');
 // Script constants
 const INPUT_FILE = 'input.txt';
 const MASK_FLOAT_BIT = 'X';  // Signify that we should treat the bit as float
+const MACHNINE_ARCHITECTURE = 36;   // How many bits we have in our machine
 
 $lines = [];
 // Open the input file and read the numbers
@@ -39,10 +40,10 @@ function apply_mask(
     int $address
 ): array
 {
-    // Convert to binary, make sure it's 36 bit long
-    $address_bin = str_pad(decbin($address), 36, '000000000000000000000000000000000000', STR_PAD_LEFT);
+    // Convert to binary, make sure it's MACHNINE_ARCHITECTURE bit long
+    $address_bin = str_pad(decbin($address), MACHNINE_ARCHITECTURE, str_repeat('0', MACHNINE_ARCHITECTURE), STR_PAD_LEFT);
     $result_bin_bits = [];
-    foreach (range(0, 35) as $i) {
+    foreach (range(0, MACHNINE_ARCHITECTURE - 1) as $i) {
         if ($mask[$i] === '0') {
             // Unchanged
             $result_bin_bits[] = $address_bin[$i];

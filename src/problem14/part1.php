@@ -10,6 +10,7 @@
 // Script constants
 const INPUT_FILE = 'input.txt';
 const MASK_KEEP_BIT = 'X';  // Signify that we should keep the value when applying mask
+const MACHNINE_ARCHITECTURE = 36;   // How many bits we have in our machine
 
 $lines = [];
 // Open the input file and read the numbers
@@ -38,10 +39,10 @@ function apply_mask(
     int $value
 ): int
 {
-    // Convert to binary, make sure it's 36 bit long
-    $value_bin = str_pad(decbin($value), 36, '000000000000000000000000000000000000', STR_PAD_LEFT);
+    // Convert to binary, make sure it's MACHNINE_ARCHITECTURE bit long
+    $value_bin = str_pad(decbin($value), MACHNINE_ARCHITECTURE, str_repeat('0', MACHNINE_ARCHITECTURE), STR_PAD_LEFT);
     $result_bin = '';
-    foreach (range(0, 35) as $i) {
+    foreach (range(0, MACHNINE_ARCHITECTURE - 1) as $i) {
         if ($mask[$i] === MASK_KEEP_BIT) {
             $result_bin .= $value_bin[$i];
         } else {
