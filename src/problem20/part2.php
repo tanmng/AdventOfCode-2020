@@ -7,7 +7,7 @@
  */
 
 
-const INPUT_FILE = 'sample.txt';
+const INPUT_FILE = 'input.txt';
 
 $tiles = [];
 $cur_tile_id = null;
@@ -102,12 +102,12 @@ function check_lineup (
 
             if (strcmp(strrev($edge1), $edge2) === 0) {
                 // Match without flipping
-                return [true, $edge1_index, $edge2_index];
+                return [true, $edge1_index, $edge2_index, false];
             }
 
             if (strcmp($edge1, $edge2) === 0) {
                 // Match with flipping on one side
-                return [true, $edge1_index, -$edge2_index];
+                return [true, $edge1_index, $edge2_index, true];
             }
         }
     }
@@ -135,6 +135,7 @@ foreach ($tiles as $tile_index1 => $tile1) {
             $cur_data[$lineup_data[1]] = [
                 $lineup_data[2],
                 $tile_index2,
+                $lineup_data[3],
             ];
         }
     }
@@ -142,22 +143,25 @@ foreach ($tiles as $tile_index1 => $tile1) {
     $match_data[$tile_index1] = $cur_data;
 }
 
-// print_r($match_data);
+/* print_r($match_data); */
+/* return; */
 
 // Assemble this image
 $tiles_not_yet_used = array_keys($tiles);
 
+// The south west corner
 $corner0 = null;
 // Choose a corner
 foreach ($match_data as $index => $match) {
-    if (count($match) === 2 && array_key_exists(0, $match))  {
+    if (count($match) === 2 && array_key_exists(0, $match) && array_key_exists(3, $match))  {
         // A corner piece - use it
         $corner0 = $index;
         break;
     }
 }
 
-// print($corner0);
+/* print($corner0); */
+/* return; */
 
 $tile_matrix = [];
 
@@ -165,12 +169,12 @@ $tile_matrix = [];
 // flip whichever way it is
 // Flip - If the image should be flip
 // Index - index of the image
-$top_line = [[3, false, $corner0]];
+$bottom_line = [[3, false, $corner0]];
 $forward_edge = 0;
 
 // Keep building the top line
 while (true) {
-    $current_last_element_of_top_line = end($top_line)[2];
+    $current_last_element_of_top_line = end($bottom_line)[2];
 
     if (!array_key_exists($forward_edge, $match_data[$current_last_element_of_top_line])) {
         // End of the line
@@ -181,11 +185,11 @@ while (true) {
     $next_index_data = $match_data[$current_last_element_of_top_line][$forward_edge];
 
     $next_index = $next_index_data[1];
-    $flip = $next_index_data[0] < 0; // If it's negative then it's flipped
-    $orientation = (abs($next_index_data[0]) + ($flip? - 1 : 1)) % 4;
+    $flip = $next_index_data[2]; // If it's negative then it's flipped
+    $orientation = (abs($next_index_data[0]) + ($flip? 3 : 1)) % 4;
 
     // Record this
-    $top_line[] = [
+    $bottom_line[] = [
         $orientation,
         $flip,
         $next_index,
@@ -195,11 +199,18 @@ while (true) {
     $forward_edge = ($next_index_data[0] + 2) % 4;
 }
 
-print_r($top_line);
+// This is actually bottom line from our point of view
+print_r($bottom_line);
 
 // Construct the next line
 $cur_line = [];
-foreach ($top_line as $top) {
+foreach ($bottom_line as $bottom) {
+    $index = $bottom[2];
+    $edge = $bottom[0];
+    $match = $match_data[$index][$edge];
+
+    print_r($match);
+
 }
 
 
