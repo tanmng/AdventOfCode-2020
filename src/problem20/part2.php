@@ -8,7 +8,8 @@
 
 
 const INPUT_FILE = 'input.txt';
-$line_count = strcmp(INPUT_FILE, 'input.txt')? 12 : 3; // Magic
+const DEBUG = true;
+$line_count = strcmp(INPUT_FILE, 'input.txt') === 0? 12 : 3; // Magic
 
 $tiles = [];
 $cur_tile_id = null;
@@ -214,7 +215,7 @@ $matrix = [];
 $matrix[] = $bottom_line;   // Make sure to reverse this at the end
 
 // Construct the next line
-foreach (range(1, $line_count) as $none) {
+foreach (range(1, $line_count - 1) as $none) {
     $cur_line = [];
     $prev_line = end($matrix);
     foreach ($prev_line as $i => $bottom) {
@@ -223,7 +224,7 @@ foreach (range(1, $line_count) as $none) {
         $match = $match_data[$index][$edge];
 
         $orientation = ($match[0] + 2) % 4;
-        $flip = $bottom[1] && $match[2];
+        $flip = $bottom[1] ^ $match[2];
         $next_index = $match[1];
 
         // Construct the object
@@ -236,10 +237,11 @@ foreach (range(1, $line_count) as $none) {
     $matrix[] = $cur_line;
 }
 
-array_reverse($matrix);
+$matrix = array_reverse($matrix);
 
 // Great, we now have the matrix
-print_r($matrix);
+/* print_r($matrix); */
+/* return; */
 
 // Functions to help display things
 //
@@ -287,6 +289,51 @@ function flipHorizontal(
 /*     '456', */
 /*     '789', */
 /* ])); */
+
+// Try to print the matrix just to check and confirm things are all good
+// - visually
+print_r($matrix);
+foreach ($matrix as $tile_line) {
+    $cur_line = [];
+    foreach ($tile_line as $tile_data) {
+        $tile_index = $tile_data[2];
+        $flip = $tile_data[1];
+        $orientation = $tile_data[0];
+
+        $cur_tile = $tiles[$tile_index];
+        // Rotate
+        // if necessary
+        $rotation = (3 - $orientation);
+        if ($rotation > 0) {
+            foreach (range(0, $rotation - 1) as $e) {
+                $cur_tile = rotate($cur_tile);
+            }
+        }
+
+        // Flip if needed
+        if ($flip) {
+            $cur_tile = flipHorizontal($cur_tile);
+        }
+        $cur_line[] = $cur_tile;
+    }
+    // Now print
+    // print_r($cur_line);
+    foreach (range(0, count($cur_line[0]) - 1) as $line_index) {
+        print(str_pad($line_index, 3, '    ', STR_PAD_LEFT).' ');
+        foreach ($cur_line as $i => $tile) {
+            $output = $tile[$line_index];
+            if (DEBUG && $line_index === count($cur_line[0])/2) {
+                $output = substr_replace($output, $tile_line[$i][2], 3, 4);
+            }
+            print($output);
+            if ($i < count($cur_line) - 1) {
+                print(' ');
+            }
+        }
+        print("\n");
+    }
+    // break;
+}
 
 
 
