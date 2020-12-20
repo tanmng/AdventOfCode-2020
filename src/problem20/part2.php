@@ -9,6 +9,8 @@
 
 const INPUT_FILE = 'input.txt';
 const DEBUG = true;
+const ROUGH_PIXEL = '#';    // A pixel that might be rough or a monster
+const FOUND_MONSTER_PIXEL = 'O';    // Represent a monster that we have found
 $line_count = strcmp(INPUT_FILE, 'input.txt') === 0? 12 : 3; // Magic
 
 $tiles = [];
@@ -174,7 +176,7 @@ $tile_matrix = [];
 $bottom_line = [[3, false, $corner0]];
 $forward_edge = 0;
 
-// Keep building the top line
+// Keep building the bottom line
 $currently_flip = false;
 while (true) {
     $current_last_element_of_top_line = end($bottom_line)[2];
@@ -188,7 +190,7 @@ while (true) {
     $next_index_data = $match_data[$current_last_element_of_top_line][$forward_edge];
 
     $next_index = $next_index_data[1];
-    $flip = $next_index_data[2]; // If it's negative then it's flipped
+    $flip = $next_index_data[2];
 
     if ($flip) {
         $currently_flip = !$currently_flip; // we can just have used a XOR - LOL
@@ -199,7 +201,7 @@ while (true) {
     // Record this
     $bottom_line[] = [
         $orientation,
-        $flip,
+        $currently_flip,
         $next_index,
     ];
 
@@ -292,7 +294,11 @@ function flipHorizontal(
 
 // Try to print the matrix just to check and confirm things are all good
 // - visually
-print_r($matrix);
+// print_r($matrix);
+
+// This will store or image
+$image_only = [];
+print("Matrix: \n");
 foreach ($matrix as $tile_line) {
     $cur_line = [];
     foreach ($tile_line as $tile_data) {
@@ -320,8 +326,10 @@ foreach ($matrix as $tile_line) {
     // print_r($cur_line);
     foreach (range(0, count($cur_line[0]) - 1) as $line_index) {
         print(str_pad($line_index, 3, '    ', STR_PAD_LEFT).' ');
+        $image_line = '';
         foreach ($cur_line as $i => $tile) {
             $output = $tile[$line_index];
+            $image_line .= substr($output, 1, strlen($output) - 2);
             if (DEBUG && $line_index === count($cur_line[0])/2) {
                 $output = substr_replace($output, $tile_line[$i][2], 3, 4);
             }
@@ -330,19 +338,162 @@ foreach ($matrix as $tile_line) {
                 print(' ');
             }
         }
+        // Record this into our final image
+        if (!in_array($line_index, [0, count($cur_line[0]) -1])) {
+            // Not the first or last
+            $image_only[] = $image_line;
+        }
         print("\n");
     }
     // break;
 }
 
+// Print the image for confirmation
+print("Image: \n");
+foreach ($image_only as $i => $image_line) {
+    print(str_pad($i, 3, '   ', STR_PAD_LEFT).' '.$image_line."\n");
+}
 
+/*
+ * Function to check if an image (stored as array) has a monster starting at
+ * given coordinate
+ * $y = line
+ * $x = column
+ * If it has a monster, return the coordinate of the pixels for the monster
+ */
+function has_monster (
+    int $x,
+    int $y,
+    array $image
+): array
+{
+    // Check if things are in range
+    /*  012345678901234567890
+     *0 *                 #
+     *1 #    ##    ##    ###
+     *2  #  #  #  #  #  #
+     */
+    $image_width = strlen($image[0]);
+    $image_height = count($image);
+    if ($x + 19 > $image_width - 1 || $x < 0) {
+        // $x is not in range
+        return ['s' => false];
+    }
+    if ($y < 0 || $y + 2 > $image_height - 1) {
+        // $y is not in range
+        return ['s' => false];
+    }
 
-$result = 0;
-/* foreach ($match_data as $tile_index => $data) { */
-/*     if (count($data) === 2) { */
-/*         // This tile has 2 neighbour - it's a corner one */
-/*         $result *= $tile_index; */
-/*     } */
-/* } */
+    // Vector of changes where the cell should have the '#'
+    $vectors = [
+        [18, 0],
+        [0, 1],
+        [5, 1],
+        [6, 1],
+        [11, 1],
+        [12, 1],
+        [17, 1],
+        [18, 1],
+        [19, 1],
+        [1, 2],
+        [4, 2],
+        [7, 2],
+        [10, 2],
+        [13, 2],
+        [16, 2],
+    ];
 
-print('Answer to part 2: '.$result."\n");
+    $return_coordinates = [];
+    foreach ($vectors as $vector) {
+        $new_x = $x + $vector[0];
+        $new_y = $y + $vector[1];
+        // print('Trying '.$new_x.', '.$new_y." while original is ".$x.', '.$y."\n");
+
+        if (strcmp($image[$new_y][$new_x], ROUGH_PIXEL)) {
+            // Not a monster
+            return ['s' => false];
+        }
+
+        $return_coordinates[] = [$new_x, $new_y];
+    }
+    // If we pass though the whole thing than it is a monster
+    return ['s' => true, 'c' => $return_coordinates];
+}
+
+// Count the number of rough pixel first
+/* print_r(array_count_values(str_split(implode('', $image_only)))); */
+/* return; */
+$rough_pixels_count = array_count_values(str_split(implode('', $image_only)))[ROUGH_PIXEL];
+print('Total number of rought pixels: '.$rough_pixels_count."\n");
+
+$max_monster_count = 0;
+$max_monster_image = null;
+$max_monster_pixels = null;
+
+// Now, go through the image variation and check to see which one has monster
+foreach (range(0, 1) as $flip) {
+    $image_copy = $image_only;
+    if ($flip === 1) {
+        $image_copy = flipHorizontal($image_copy);
+    }
+    foreach (range(0, 2) as $rotation) {
+        // Rotate a 4th time is stupid
+        // Check to see if there is monster
+        $found_monsters = 0;
+        $monster_pixels = [];
+        foreach (range(0, strlen($image_copy[0]) - 20) as $x) {
+            foreach (range(0, count($image_copy) - 2) as $y) {
+                $has_monster_status = has_monster($x, $y, $image_copy);
+                if ($has_monster_status['s']) {
+                    // A monster
+                    $found_monsters += 1;
+                    $monster_pixels = array_merge($monster_pixels, $has_monster_status['c']);
+                }
+            }
+        }
+
+        // Maybe we have more than 1 configurations where we see monster
+        print('Flip '.$flip.' Rotate '.$rotation.', found: '.$found_monsters."\n");
+
+        if ($found_monsters > $max_monster_count) {
+            $max_monster_count = $found_monsters;
+            $max_monster_pixels = $monster_pixels;
+            $max_monster_image = $image_copy;
+        }
+
+        /* if ($found_monsters > 0) { */
+        /*     // We found monster with this image configuration */
+        /*     break 2; */
+        /* } */
+
+        // Rotate this
+        $image_copy = rotate($image_copy);
+    }
+}
+// return;
+
+print('Number of monster found: '.$max_monster_count."\n");
+print('Image in the right way: '."\n");
+foreach ($max_monster_image as $i => $image_line) {
+    print(str_pad($i, 3, '   ', STR_PAD_LEFT).' '.$image_line."\n");
+}
+// print_r($monster_pixels);
+// Change the image
+$image_with_monster = $max_monster_image;
+foreach ($max_monster_pixels as $pixel) {
+    if ($image_with_monster[$pixel[1]][$pixel[0]] === FOUND_MONSTER_PIXEL) {
+        print('Overlap');
+        return;
+    }
+    $image_with_monster[$pixel[1]][$pixel[0]] = FOUND_MONSTER_PIXEL;
+}
+
+print('Image with monster: '."\n");
+foreach ($image_with_monster as $i => $image_line) {
+    print(str_pad($i, 3, '   ', STR_PAD_LEFT).' '.$image_line."\n");
+}
+
+$ans = array_count_values(str_split(implode('', $image_with_monster)))[ROUGH_PIXEL];
+
+// A monster has 15 pixels
+print('Answer to part 2: '.$ans."\n");
