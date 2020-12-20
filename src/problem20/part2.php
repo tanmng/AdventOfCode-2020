@@ -8,6 +8,7 @@
 
 
 const INPUT_FILE = 'input.txt';
+$line_count = strcmp(INPUT_FILE, 'input.txt')? 12 : 3; // Magic
 
 $tiles = [];
 $cur_tile_id = null;
@@ -173,6 +174,7 @@ $bottom_line = [[3, false, $corner0]];
 $forward_edge = 0;
 
 // Keep building the top line
+$currently_flip = false;
 while (true) {
     $current_last_element_of_top_line = end($bottom_line)[2];
 
@@ -186,7 +188,12 @@ while (true) {
 
     $next_index = $next_index_data[1];
     $flip = $next_index_data[2]; // If it's negative then it's flipped
-    $orientation = (abs($next_index_data[0]) + ($flip? 3 : 1)) % 4;
+
+    if ($flip) {
+        $currently_flip = !$currently_flip; // we can just have used a XOR - LOL
+    }
+
+    $orientation = (abs($next_index_data[0]) + ($currently_flip? 3 : 1)) % 4;
 
     // Record this
     $bottom_line[] = [
@@ -200,19 +207,86 @@ while (true) {
 }
 
 // This is actually bottom line from our point of view
-print_r($bottom_line);
+// print_r($bottom_line);
+
+// Matrix of tiles
+$matrix = [];
+$matrix[] = $bottom_line;   // Make sure to reverse this at the end
 
 // Construct the next line
-$cur_line = [];
-foreach ($bottom_line as $bottom) {
-    $index = $bottom[2];
-    $edge = $bottom[0];
-    $match = $match_data[$index][$edge];
+foreach (range(1, $line_count) as $none) {
+    $cur_line = [];
+    $prev_line = end($matrix);
+    foreach ($prev_line as $i => $bottom) {
+        $index = $bottom[2];
+        $edge = $bottom[0];
+        $match = $match_data[$index][$edge];
 
-    print_r($match);
+        $orientation = ($match[0] + 2) % 4;
+        $flip = $bottom[1] && $match[2];
+        $next_index = $match[1];
 
+        // Construct the object
+        $cur_line[] = [
+            $orientation,
+            $flip,
+            $next_index,
+        ];
+    }
+    $matrix[] = $cur_line;
 }
 
+array_reverse($matrix);
+
+// Great, we now have the matrix
+print_r($matrix);
+
+// Functions to help display things
+//
+/*
+ * Rotate a tile 90 degree clockwise
+ */
+function rotate(
+    array $tile
+): array
+{
+    $char_count = strlen($tile[0]);
+    $elements = array_fill(0, $char_count, []);
+    foreach ($tile as $line) {
+        foreach (range(0, $char_count - 1) as $i) {
+            $elements[$i][] = substr($line, $i, 1);
+        }
+    }
+    $result = [];
+    foreach (range(0, $char_count - 1) as $i) {
+        $result[] = strrev(implode('', $elements[$i]));
+    }
+
+    return $result;
+}
+
+/*
+ * Function to help flip things horizontally
+ * Note that flipping vertically is just the same as flipping vertically and
+ * then rotate 180 degree
+ */
+function flipHorizontal(
+    array $tile
+): array
+{
+    $result = [];
+    foreach ($tile as $line) {
+        $result[] = strrev($line);
+    }
+
+    return $result;
+}
+
+/* print_r(rotate([ */
+/*     '123', */
+/*     '456', */
+/*     '789', */
+/* ])); */
 
 
 
