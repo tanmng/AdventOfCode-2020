@@ -8,10 +8,22 @@
 
 ini_set('memory_limit', '2048M');
 
-const N = 20201227;   // This is a prime
-const m = 7;
-const CARD_PUB = 15628416;  // This is 7^e1 mod N
-const DOOR_PUB = 11161639;  // This is 7^e2 mod N
+const P = 20201227;   // This is a prime
+const g = 7;
 
-// We need fo find e1 or e2
-// Hmmmmm
+# The 2 public keys
+const CARD_PUB = 15628416;  // This is g^a mod P
+const DOOR_PUB = 11161639;  // This is g^b mod P
+
+// We need fo find a or b
+$val = 1;
+$result = 1;
+while (true) {
+    $val = ($val * g) % P;
+    $result = ($result * DOOR_PUB) % P;
+    if ($val === CARD_PUB) {
+        break;
+    }
+}
+
+print('Answer to part 1: '.$result."\n");
